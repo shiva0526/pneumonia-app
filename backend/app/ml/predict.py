@@ -2,15 +2,15 @@
 import io
 from PIL import Image
 import numpy as np
-from tensorflow import keras  # Single, correct import for all Keras functions
-from app.config import MODEL_PATH
+from tensorflow import keras
+from app.config import settings  # <--- IMPORT the settings object
 
 IMG_SIZE = 150
 CLASS_NAMES = ['NORMAL', 'BACTERIAL', 'VIRAL']
 CONFIDENCE_THRESHOLD = 0.6
 
-# Load model at import time (once) using the keras object
-_model = keras.models.load_model(MODEL_PATH)
+# Load model at import time using settings.MODEL_PATH
+_model = keras.models.load_model(settings.MODEL_PATH) # <--- USE settings.
 
 def predict_from_bytes(file_bytes: bytes):
     """

@@ -12,11 +12,9 @@ import CameraCapture from "@/components/CameraCapture";
 import ConfidenceAlert from "@/components/ConfidenceAlert";
 import { generatePDFReport } from "@/utils/reportGenerator";
 import { useTranslation } from "react-i18next";
+import { analyzeImageApi, type PredictionResult } from '@/api/scanApi';
 
-interface PredictionResult {
-  prediction: string;
-  confidence: number;
-}
+
 
 const Upload = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -74,50 +72,43 @@ const Upload = () => {
   };
 
   const analyzeImage = async () => {
-    if (!selectedFile) return;
+  if (!selectedFile) return;
 
-    setIsAnalyzing(true);
-    setCurrentStep(2);
-    
-    const formData = new FormData();
-    formData.append('file', selectedFile);
+  setIsAnalyzing(true);
+  setCurrentStep(2);
 
-    try {
-      const response = await fetch('http://127.0.0.1:8000/predict', {
-        method: 'POST',
-        body: formData,
-      });
+  try {
+    // ✅ New axios-based API call
+    const data = await analyzeImageApi(selectedFile);
 
-      if (!response.ok) throw new Error('Analysis failed');
+    setResult(data);
+    setCurrentStep(3);
 
-      const data: PredictionResult = await response.json();
-      setResult(data);
-      setCurrentStep(3);
-      
-      // Save to history
-      const history = JSON.parse(localStorage.getItem('scanHistory') || '[]');
-      history.unshift({
-        ...data,
-        date: new Date().toISOString(),
-        thumbnail: preview,
-      });
-      localStorage.setItem('scanHistory', JSON.stringify(history.slice(0, 20)));
+    // ✅ Save to history (same as before)
+    const history = JSON.parse(localStorage.getItem('scanHistory') || '[]');
+    history.unshift({
+      ...data,
+      date: new Date().toISOString(),
+      thumbnail: preview,
+    });
+    localStorage.setItem('scanHistory', JSON.stringify(history.slice(0, 20)));
 
-      toast({
-        title: "Analysis Complete",
-        description: "Your X-ray has been analyzed successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Analysis Failed",
-        description: "Unable to connect to the API. Please ensure the FastAPI server is running.",
-        variant: "destructive"
-      });
-      setCurrentStep(1);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+    toast({
+      title: "Analysis Complete",
+      description: "Your X-ray has been analyzed successfully",
+    });
+  } catch (error) {
+    toast({
+      title: "Analysis Failed",
+      description: "Unable to connect to the API. Please ensure the FastAPI server is running.",
+      variant: "destructive"
+    });
+    setCurrentStep(1);
+  } finally {
+    setIsAnalyzing(false);
+  }
+};
+
 
   const reset = () => {
     setSelectedFile(null);

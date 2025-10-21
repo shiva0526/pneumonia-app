@@ -18,8 +18,10 @@ class UserOut(BaseModel):
     email: EmailStr
     role: str
     created_at: datetime
-    class Config:
-        orm_mode = True
+    model_config = {
+    "from_attributes": True
+}
+
 
 class Token(BaseModel):
     access_token: str
