@@ -1,39 +1,35 @@
 # app/ml/predict.py
 import io
-from PIL import Image
 import numpy as np
+from PIL import Image
+# from tensorflow.keras.preprocessing.image import img_to_array
+# from tensorflow.keras.models import load_model
 from tensorflow import keras
-from app.config import settings  # <--- IMPORT the settings object
 
-IMG_SIZE = 150
+# Configuration
+MODEL_PATH = "app/ml/chest_xray_cnn_model.keras"
 CLASS_NAMES = ['NORMAL', 'BACTERIAL', 'VIRAL']
+IMG_SIZE = 150
 CONFIDENCE_THRESHOLD = 0.6
 
-# Load model at import time using settings.MODEL_PATH
-_model = keras.models.load_model(settings.MODEL_PATH) # <--- USE settings.
+# Load the model once at import time
+model = keras.models.load_model(MODEL_PATH)
 
-def predict_from_bytes(file_bytes: bytes):
+def predict_from_bytes(file_bytes):
     """
-    Takes image bytes, preprocesses the image, and returns predictions.
+    Takes image bytes, preprocesses, predicts, and returns label, confidence, and full probabilities.
     """
-    # Open and prepare the image
     img = Image.open(io.BytesIO(file_bytes)).convert("RGB")
     img = img.resize((IMG_SIZE, IMG_SIZE))
+    arr = keras.preprocessing.image.img_to_array(img) / 255.0
+    arr = np.expand_dims(arr, axis=0)
 
-    # Convert image to numpy array using the correct Keras utility path
-    arr = keras.utils.img_to_array(img) / 255.0
-    
-    # Add a batch dimension for the model
-    arr = np.expand_dims(arr, 0)
-    
-    # Get model predictions
-    preds = _model.predict(arr)[0].tolist()  # list of floats
-    
-    # Process the prediction results
-    idx = int(np.argmax(preds))
-    confidence = float(preds[idx])
-    
-    # Determine the final label based on the confidence threshold
-    label = CLASS_NAMES[idx] if confidence >= CONFIDENCE_THRESHOLD else "Uncertain / Unknown"
-    
-    return label, confidence, preds
+    prediction = model.predict(arr)[0]
+    class_index = np.argmax(prediction)
+    confidence = float(np.max(prediction))
+
+    # Handle uncertain predictions (non-chest X-rays)
+    if confidence < CONFIDENCE_THRESHOLD:
+        return "Uncertain / Unknown", confidence, prediction.tolist()
+
+    return CLASS_NAMES[class_index], confidence, prediction.tolist()

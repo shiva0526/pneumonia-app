@@ -133,15 +133,21 @@ const Upload = () => {
   };
 
   const getResultConfig = (prediction: string) => {
-    const predLower = prediction.toLowerCase();
-    if (predLower.includes('normal')) {
-      return { icon: CheckCircle, color: 'success', label: 'Normal' };
-    } else if (predLower.includes('viral')) {
-      return { icon: AlertTriangle, color: 'warning', label: 'Viral Pneumonia' };
-    } else {
-      return { icon: XCircle, color: 'destructive', label: 'Bacterial Pneumonia' };
-    }
-  };
+  const predLower = prediction.toLowerCase();
+
+  if (predLower.includes('uncertain') || predLower.includes('unknown')) {
+    return { icon: AlertTriangle, color: 'secondary', label: 'Uncertain / Unknown' };
+  } else if (predLower.includes('normal')) {
+    return { icon: CheckCircle, color: 'success', label: 'Normal' };
+  } else if (predLower.includes('viral')) {
+    return { icon: AlertTriangle, color: 'warning', label: 'Viral Pneumonia' };
+  } else if (predLower.includes('bacterial')) {
+    return { icon: XCircle, color: 'destructive', label: 'Bacterial Pneumonia' };
+  } else {
+    return { icon: AlertTriangle, color: 'secondary', label: 'Unknown Result' };
+  }
+};
+
 
   return (
     <div className="container mx-auto px-4 py-8">

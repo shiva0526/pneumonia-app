@@ -10,3 +10,4 @@ pillow
 tensorflow
 python-dotenv
 python-decouple
+pydantic-settings
