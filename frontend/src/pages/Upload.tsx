@@ -233,6 +233,25 @@ const Upload = () => {
                         <X className="h-4 w-4" />
                       </button>
                     </div>
+                    <AnimatePresence>
+                      {result && result.heatmap && (
+                        <motion.div
+                          className="mt-4"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                        >
+                          <p className="text-sm font-medium text-center text-muted-foreground mb-2">
+                            AI Focus (Heatmap)
+                          </p>
+                          <img
+                            src={`data:image/jpeg;base64,${result.heatmap}`}
+                            alt="Prediction heatmap"
+                            className="w-full rounded-xl shadow-soft"
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <div className="flex flex-col justify-center">

@@ -23,35 +23,37 @@ async def predict_scan(file: UploadFile = File(...)):
 
     # Step 2: Proceed to model prediction
     try:
-        label, confidence, probs = predict_from_bytes(contents)
+        # --- START CHANGE ---
+        # predict_from_bytes now returns 4 values
+        label, confidence, probs, heatmap_base64 = predict_from_bytes(contents)
         return {
             "prediction": label,
             "confidence": confidence,
-            "probabilities": probs
+            "probabilities": probs, # Keep this for compatibility
+            "heatmap": heatmap_base64 # <-- NEW: Send heatmap to frontend
         }
+        # --- END CHANGE ---
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
-    
-# @router.post("/predict", response_model=dict)
-# async def predict(file: UploadFile = File(...)):
-#     contents = await file.read()
-#     try:
-#         label, confidence, probs = predict_from_bytes(contents)
-#     except Exception:
-#         raise HTTPException(status_code=400, detail="Invalid image or prediction failed")
-#     return {"prediction": label, "confidence": confidence, "probs": probs}
 
 @router.post("/predict/save", response_model=ScanOut)
 async def predict_and_save(file: UploadFile = File(...), db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     contents = await file.read()
     try:
-        label, confidence, probs = predict_from_bytes(contents)
+        # --- START CHANGE ---
+        # Get all 4 values, but we'll only use 3
+        label, confidence, probs, _ = predict_from_bytes(contents) 
+        # --- END CHANGE ---
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid image or prediction failed")
+    
     filename = save_file_local(contents, file.filename)
+    
+    # --- START CHANGE ---
+    # Save 'probs' (the list) as a string, just like before.
+    # The heatmap is ignored and not saved to the DB.
     scan = create_scan(db, current_user.id, filename, label, confidence, str(probs))
-    # Map image_path to URL in response: we store filename; frontend should build URL: /uploads/scans/<filename>
-    # But since ScanOut image_path is the filename, frontend can prefix server URL + /uploads/scans/
+    # --- END CHANGE ---
     return scan
 
 @router.get("/history", response_model=list[ScanOut])

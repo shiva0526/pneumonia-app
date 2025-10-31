@@ -11,3 +11,5 @@ tensorflow
 python-dotenv
 python-decouple
 pydantic-settings
+opencv-python-headless
+matplotlib
