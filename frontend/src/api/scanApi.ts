@@ -33,3 +33,9 @@ export const analyzeImageApi = async (file: File) => {
     throw error;
   }
 };
+
+// Fetch the logged-in user's scan history from the backend
+export const getHistory = async () => {
+  const response = await apiClient.get('/scan/history');
+  return response.data;
+};

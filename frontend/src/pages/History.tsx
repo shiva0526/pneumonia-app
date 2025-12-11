@@ -4,6 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Calendar, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { getHistory as fetchServerHistory } from "@/api/scanApi";
+import apiClient from "@/api/apiClient";
 
 interface HistoryItem {
   prediction: string;
@@ -15,15 +18,56 @@ interface HistoryItem {
 const History = () => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    const stored = localStorage.getItem('scanHistory');
-    if (stored) {
-      setHistory(JSON.parse(stored));
-    }
-  }, []);
+    const load = async () => {
+      // If user is logged in, fetch their history from the server
+      if (isAuthenticated) {
+        try {
+          const serverScans = await fetchServerHistory();
+          // Map server scan shape to the local HistoryItem shape
+          const mapped = serverScans.map((s: any) => ({
+            prediction: s.prediction,
+            confidence: s.confidence,
+            date: s.created_at,
+            thumbnail: `${apiClient.defaults.baseURL}/uploads/scans/${s.image_path}`,
+          }));
+          setHistory(mapped);
+          return;
+        } catch (err) {
+          // fallback to localStorage if server call fails
+          console.error("Failed to fetch server history:", err);
+        }
+      }
+
+      const stored = localStorage.getItem('scanHistory');
+      if (stored) {
+        try {
+          setHistory(JSON.parse(stored));
+        } catch (e) {
+          console.error('Failed to parse local scanHistory:', e);
+          setHistory([]);
+        }
+      }
+    };
+
+    load();
+  }, [isAuthenticated]);
 
   const clearHistory = () => {
+    if (isAuthenticated) {
+      // Server-side deletion endpoint not implemented; only clear local cache.
+      // You may want to implement a backend endpoint to delete user scans.
+      localStorage.removeItem('scanHistory');
+      setHistory([]);
+      toast({
+        title: "History Cleared (local)",
+        description: "Local history cleared. To remove server-side scans implement a deletion endpoint.",
+      });
+      return;
+    }
+
     localStorage.removeItem('scanHistory');
     setHistory([]);
     toast({

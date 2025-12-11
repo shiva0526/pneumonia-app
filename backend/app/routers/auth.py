@@ -1,9 +1,10 @@
 # app/routers/auth.py
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
 from sqlalchemy.orm import Session
-from app.schemas.user import UserCreate, UserLogin, Token
-from app.deps import get_db
+from app.schemas.user import UserCreate, UserLogin, Token,UserOut
+from app.deps import get_db,get_current_user
 from app.services.auth_service import create_user, authenticate_user, create_tokens_for_user
+from app import models
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -43,3 +44,15 @@ def logout(response: Response):
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return {"msg": "Logged out"}
+
+@router.get("/me") # response_model=UserOut (add this if you have the schema)
+def read_users_me(current_user: models.user.User = Depends(get_current_user)):
+    """
+    Fetch the current logged-in user details using the HttpOnly cookie.
+    """
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "name": current_user.name,
+        "role": current_user.role
+    }

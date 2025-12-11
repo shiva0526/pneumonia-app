@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { z } from "zod";
@@ -12,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
+import Loader from "@/components/Loader"; // Import your global loader
 
 const authSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }).max(255),
@@ -21,16 +21,19 @@ const authSchema = z.object({
 type AuthFormValues = z.infer<typeof authSchema>;
 
 const Auth = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  // Renamed to isSubmitting to avoid conflict with auth context loading
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Grab 'loading' from AuthContext to know if we are still checking /me
+  const { signIn, signUp, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
+    if (!authLoading && user) {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const loginForm = useForm<AuthFormValues>({
     resolver: zodResolver(authSchema),
@@ -49,9 +52,9 @@ const Auth = () => {
   });
 
   const handleLogin = async (values: AuthFormValues) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     const { error } = await signIn(values.email, values.password);
-    setIsLoading(false);
+    setIsSubmitting(false);
     
     if (!error) {
       navigate("/");
@@ -59,14 +62,23 @@ const Auth = () => {
   };
 
   const handleSignup = async (values: AuthFormValues) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     const { error } = await signUp(values.email, values.password);
-    setIsLoading(false);
+    setIsSubmitting(false);
     
     if (!error) {
       navigate("/");
     }
   };
+
+  // Prevent form flash while checking authentication status
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)]">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-12 flex items-center justify-center min-h-[calc(100vh-80px)]">
@@ -119,8 +131,8 @@ const Auth = () => {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      {isSubmitting ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Logging in...
@@ -172,8 +184,8 @@ const Auth = () => {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      {isSubmitting ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Creating account...

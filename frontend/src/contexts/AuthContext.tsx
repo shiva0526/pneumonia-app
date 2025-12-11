@@ -1,11 +1,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { authApi, User } from "@/api/authApi";
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
+  isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -16,89 +15,96 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // On mount, check if user is already logged in by calling /me
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    const checkAuth = async () => {
+      try {
+        const userData = await authApi.getMe();
+        setUser(userData);
+      } catch (error) {
+        // If 401, simply means not logged in
+        setUser(null);
+      } finally {
         setLoading(false);
       }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    };
+    checkAuth();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      toast({
-        title: "Login Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await authApi.login(email, password);
+      // After successful login, fetch user details
+      const userData = await authApi.getMe();
+      setUser(userData);
+      
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
+      return { error: null };
+    } catch (err: any) {
+      const message = err.response?.data?.detail || "Login failed";
+      toast({
+        title: "Login Failed",
+        description: message,
+        variant: "destructive",
+      });
+      return { error: message };
     }
-    
-    return { error };
   };
 
   const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl
-      }
-    });
-    
-    if (error) {
-      toast({
-        title: "Sign Up Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await authApi.register(email, password);
+      // After register, you might be logged in automatically (depending on backend)
+      // If backend sets cookies on register (which yours does), fetch user:
+      const userData = await authApi.getMe();
+      setUser(userData);
+
       toast({
         title: "Account Created!",
         description: "You have successfully signed up.",
       });
+      return { error: null };
+    } catch (err: any) {
+      const message = err.response?.data?.detail || "Registration failed";
+      toast({
+        title: "Sign Up Failed",
+        description: message,
+        variant: "destructive",
+      });
+      return { error: message };
     }
-    
-    return { error };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
+    try {
+      await authApi.logout();
+      setUser(null);
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+    } catch (error) {
+      console.error("Logout error", error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, signIn, signUp, signOut, loading }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        isAuthenticated: !!user, 
+        signIn, 
+        signUp, 
+        signOut, 
+        loading 
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
