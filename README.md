@@ -14,8 +14,11 @@ Ensure you have the following installed:
 Start by cloning the project to your local machine:
 
 git clone https://github.com/shiva0526/pneumonia-app.git]
+
 cd pneumonia-app
+
 2. Backend Setup (FastAPI)
+3. 
 Navigate to the backend directory and set up the Python environment.
 
 Step 2a: Create and Activate Virtual Environment
