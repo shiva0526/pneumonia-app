@@ -1,3 +1,5 @@
+Markdown
+
 ## 🛠️ Installation & Setup Guide
 
 Follow these steps to set up the project locally on your machine.
@@ -13,12 +15,9 @@ Ensure you have the following installed:
 ### 1. Clone the Repository
 Start by cloning the project to your local machine:
 
-git clone https://github.com/shiva0526/pneumonia-app.git]
-
+git clone https://github.com/shiva0526/pneumonia-app.git
 cd pneumonia-app
-
 2. Backend Setup (FastAPI)
-3. 
 Navigate to the backend directory and set up the Python environment.
 
 Step 2a: Create and Activate Virtual Environment
@@ -31,8 +30,8 @@ venv\Scripts\activate
 
 # Mac/Linux:
 source venv/bin/activate
-Step 2b: Install Dependencies
 
+Step 2b: Install Dependencies
 
 pip install -r requirements.txt
 Step 2c: Configure Environment Variables Create a .env file in the backend/ directory with your database and security settings:
@@ -58,6 +57,8 @@ cd frontend
 npm install
 
 Step 3b: Start the Development Server
+
+npm run dev
 
 npm run dev
 The application will launch in your browser at http://localhost:5173.
